@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1348.17">
+ <link rel="stylesheet" href="res/bootstrap/css/bootstrap.min.css">
+ <script src="res/jquery.js"></script>
+ <script src="res/bootstrap/js/bootstrap.min.js"></script>
+ 
+ <style>
+ .buttonPref div img{
+	 border:2px solid black;background-color:#cccccc;border-radius:27px;padding:4px;height:54px;}
+	 
+	 .btn-default:hover
+	 {
+	 	background-color:rgba(0,0,0,0);
+	 }
+	
+ </style>
+ 
+</head>
+<body>
+	
+   
+	<div class="container-fluid buttonPref" style="margin-top:1%;" >
+ 	   <div class="row">
+  	   	
+		 
+		   <div class="col-xs-3">Direction:<span id="direction">&nbsp;ahead</span></div>
+		   <div class="col-xs-2">Link:&nbsp;<span id="link">&nbsp;not connected</span></div>
+		   <div class="col-xs-3">Speed:&nbsp;<span id="speed">&nbsp;no movement</span></div>
+	   	 
+		 	
+	  
+		    <div class="col-xs-1"><img src="res/connect.png"/></div>
+			<div class="col-xs-1">&nbsp;</div>
+		    <div class="col-xs-1"><img src="res/settings.png"/></div>
+ 	  	   
+		
+	   </div>
+	   
+	
+	 <div class="row" style="margin-top:3%">
+		<div class="col-xs-3"><img src="res/indicator_left.png"/></div>
+		<div class="col-xs-2"><img src="res/light.png"/></div>
+		<div class="col-xs-2"><img src="res/horn.png"/></div>
+		<div class="col-xs-2"><img src="res/parking.png"/></div>
+		<div class="col-xs-1 col-xs-offset-1"><img src="res/indicator_right.png"/></div>
+	 </div>
+	  	<div class="row text-center" >
+		  
+	 	   <canvas id="joystick" ></canvas>
+		   
+ 		</div>
+	 	
+	</div>
+
+</body>
+
+       <script>
+		 var wid=$(window).width();
+		 var SPEED=0;
+		 var DIRECTION=0;
+		 var CurrentKey;
+		 //if(wid)
+		 $("#joystick").prop({width:480,height:200});
+         var canvas = document.getElementById('joystick');
+         var context = canvas.getContext('2d');
+		 var RBaseX= canvas.width / 2 + 120;
+		 var BaseY = canvas.height / 2;
+		 var LBaseX= RBaseX-250;
+		 
+         var controlActive= false;
+		 var outerRadius=75;
+		 var innerRadius=25;
+		 var radius=25;
+		// drawControl(RBaseX, BaseY,LBaseX,BaseY, innerRadius);
+
+		var touches = [{pageX:LBaseX,pageY:BaseY},{pageX:RBaseX,pageY:BaseY}];
+		canvas.addEventListener('touchstart', function(event) {
+		  event.preventDefault();
+		  // $("#coord").html(event.touches[0].pageX+","+event.touches[0].pageY-canvas.offsetTop);
+		  screen.orientation.lock('landscape');
+		});
+		canvas.addEventListener('touchmove', function(event) {
+		  event.preventDefault();
+		  touches = event.touches;
+		});
+		canvas.addEventListener('touchend', function() {
+			context.clearRect(0, 0, canvas.width, canvas.height);
+			touches=[];
+		});
+		
+		$( document ).ready(function() {
+		    //window.addEventListener('orientationchange', doOnOrientationChange);
+
+		    setInterval(drawControl,5);
+		});
+	    
+		 function drawControl()
+		 {
+			context.clearRect(0, 0, canvas.width, canvas.height);
+	        context.beginPath();
+				
+			var coord=GetPointInRange(LBaseX);
+			coord=limit(coord.x,coord.y,LBaseX);
+			context.arc(coord.x, coord.y, radius, 0, 2 * Math.PI, false);
+			context.fillStyle = '#888888';
+     	    context.fill();
+     		context.lineWidth = 1;
+	 		context.strokeStyle="#888888";
+	 		context.stroke();
+	
+			var coord=GetPointInRange(RBaseX);
+			context.beginPath();
+			coord=limit(coord.x,coord.y,RBaseX);
+			context.arc(coord.x, coord.y, radius, 0, 2 * Math.PI, false);
+			context.fillStyle = '#888888';
+			context.fill();
+			context.lineWidth = 1;
+			context.strokeStyle="#888888";
+			context.stroke();
+		    
+			 context.beginPath();
+			 context.strokeStyle="#000000";
+			 context.arc(RBaseX, BaseY, outerRadius, 0, 2 * Math.PI, false);
+			 context.stroke();
+			 
+			 context.beginPath();
+			 context.strokeStyle="#000000";
+			 context.arc(LBaseX, BaseY, outerRadius, 0, 2 * Math.PI, false);
+	         context.stroke();
+		 }
+		 function GetPointInRange(base){
+			 for (i=0; i<touches.length; i++) 
+			 {
+			 var tmpX = Math.abs(touches[i].pageX - base);
+			 var tmpY = Math.abs(touches[i].pageY-canvas.offsetTop - BaseY);
+			 var dist=Math.sqrt((tmpX * tmpX) + (tmpY * tmpY));
+
+			     if (dist <= outerRadius+35) {
+			         return {x:touches[i].pageX,y:touches[i].pageY-canvas.offsetTop};
+			     } 
+			 }
+				 return {x:base,y:BaseY};
+		 }
+		 
+		 
+		 
+		 function limit(cx, cy,baseX) {
+			
+			 var tmpX = Math.abs(cx - baseX);
+			 var tmpY = Math.abs(cy-BaseY);
+			 var dist=Math.sqrt((tmpX * tmpX) + (tmpY * tmpY));
+   
+			     if (dist <= outerRadius-innerRadius) {
+			         return {x: cx, y: cy};
+			     } 
+			     else {
+			         cx = cx - baseX;
+			         cy = cy - BaseY;
+			         var radians = Math.atan2(cy, cx)
+			            return {
+			                x: Math.cos(radians) * (outerRadius-innerRadius) + baseX,
+			                y: Math.sin(radians) * (outerRadius-innerRadius) + BaseY
+			            }
+			         } 
+	        
+		     }
+		 
+		 function getMouse(e) {
+		   var element = canvas, offsetX = 0, offsetY = 0, mx, my;
+  
+		   // Compute the total offset
+		   if (element.offsetParent !== undefined) {
+		     do {
+		       offsetX += element.offsetLeft;
+		       offsetY += element.offsetTop;
+		     } while ((element = element.offsetParent));
+		   }
+
+		   // Add padding and border style widths to offset
+		   // Also add the <html> offsets in case there's a position:fixed bar
+		   //offsetX += this.stylePaddingLeft + this.styleBorderLeft + this.htmlLeft;
+		   //offsetY += this.stylePaddingTop + this.styleBorderTop + this.htmlTop;
+
+		   mx = e.pageX - offsetX;
+		   my = e.pageY - offsetY;
+  		   $("#coord").html(mx+","+my);
+		   // We return a simple javascript object (a hash) with x and y defined
+		   return {x: mx, y: my};
+		 }
+		 
+		 canvas.addEventListener('mousemove', function(e) {
+			 if(controlActive)
+			 {
+		      // Something's dragging so we must redraw
+			  var coord= getMouse(e);
+			 // alert(coord.x+"  "+coord.y);
+			  drawControl(coord.x,coord.y,innerRadius);
+		  	 }
+		   }, true);
+		
+			
+		   canvas.addEventListener('mousedown', function(e) {
+			   controlActive = true;
+		         }, true);
+	  	   canvas.addEventListener('mouseup', function(e) {
+	  			   controlActive = false;
+				   var coord= getMouse(e);
+				   animateCircle(coord.x,coord.y);
+	  		         }, true);
+					 
+			function animateCircle(rx,ry)
+			{
+				var tx = RBaseX - rx,
+             	ty = BaseY - ry,
+             	dist = Math.sqrt(tx*tx+ty*ty),
+            	rad = Math.atan2(ty,tx),
+        		angle = rad/Math.PI * 180;
+
+        
+	           velX = (tx/dist)*5;
+	           velY = (ty/dist)*5;
+
+	            if(dist > 3)
+				{
+	           	  rx += velX;
+	         	  ry += velY;
+				  setTimeout(function(){
+				  	drawControl(rx,ry,innerRadius);
+					animateCircle(rx,ry);
+				  },5);
+	         	}
+				else
+				drawControl(RBaseX,BaseY,innerRadius);
+				
+			 }
+		
+			$( "#switch" ).click(function() {
+				 
+			});
+			
+			$(document).keydown(function(e) {
+				var event;
+				
+				if(e.which==38) //up key
+				{
+					//if(currentKey)
+					$("#upbtn").addClass("active");
+					if(SPEED<100)
+					{
+						SPEED+=10;
+						setTimeout(function(){
+						$("#speed").text(SPEED+" % forward");
+					},500);
+					}
+				}
+				
+				if(e.which==40) //down key
+				{
+					
+					$("#downbtn").addClass("active");
+					if(SPEED<100)
+					{
+						SPEED+=10;
+						setTimeout(function(){
+						$("#speed").text(SPEED+" % backward");
+					},500);
+					}
+				}
+				
+				if(e.which==37) //left key
+				{
+					
+					$("#leftbtn").addClass("active");
+					if(DIRECTION<100)
+					{
+						DIRECTION+=10;
+						setTimeout(function(){
+						$("#direction").text(DIRECTION+" % left");
+					},300);
+					}
+				}
+			});
+			$(document).keyup(function(e) {
+				if(e.which==38) 
+				{
+					$("#upbtn").removeClass("active");
+					reduceSpeed();
+				}
+				else
+					if(e.which==40) 
+					{
+						$("#downbtn").removeClass("active");
+						reduceSpeed();
+					}
+					else
+						if(e.which==37) 
+						{
+							$("#downbtn").removeClass("active");
+							reduceSpeed();
+						}
+			});
+			
+			function reduceSpeed()
+			{
+				if(SPEED>0)
+				{	
+				SPEED-=10;
+				setTimeout(function(){
+				
+					
+					
+						reduceSpeed();
+					$("#speed").text(SPEED+" %");
+				
+				},100);
+				}
+			}
+			
+			
+			
+			function getKeyID(e)
+			{
+				if(e.which==38)
+				{
+					setTimeout(function(){
+					
+						SPEED+=10;
+						$("#speed").text(SPEED+" %");
+					},700);
+					return {key:"#upbtn",arrow:true};
+				}
+				else
+					if(e.which==37)
+					return {key:"#leftbtn",arrow:true};
+				else
+					if(e.which==40)
+					return {key:"#downbtn",arrow:true};
+				else
+					if(e.which==39)
+					return {key:"#rightbtn",arrow:true};
+			}
+			
+			
+			
+       </script>
+</html>

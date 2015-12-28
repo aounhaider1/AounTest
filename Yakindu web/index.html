@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1348.17">
+ <link rel="stylesheet" href="res/bootstrap/css/bootstrap.min.css">
+ <script src="res/jquery.js"></script>
+ <script src="res/bootstrap/js/bootstrap.min.js"></script>
+ 
+ <style>
+	.buttonPref div img
+	{
+		border:2px solid black;background-color:#cccccc;border-radius:27px;padding:4px;height:54px;
+ 	}
+	 
+	 .btn-default:hover
+	 {
+	 	background-color:rgba(0,0,0,0);
+	 }
+	 
+	 @media screen and (max-width:767px) { 
+		 #settingsRow{
+			 margin-top:10px!important;
+		 }
+		 
+		 #buttonsRow{
+			 margin-top:0px!important;
+		 }
+		 
+		 #joystick{
+			 margin-top:-20%;
+		 }
+		 .col-xs-2{
+			 width:54px!important;
+			 margin-left:10px;
+		 }
+		
+	  }
+	  
+ </style>
+ 
+</head>
+<body>
+	
+    <h3 class="text-center">Yakindu SmartCar</h3>
+	<div class="container-fluid buttonPref" style="margin-top:5%;" >
+ 	   <div class="row">
+  	   	
+		 
+		   <div class="col-sm-2">Direction:&nbsp;<span id="direction">ahead</span></div>
+		   <div class="col-sm-2">Link:&nbsp;<span id="link">not connected</span></div>
+		   <div class="col-sm-2">Speed:&nbsp;<span id="speed">no movement</span></div>
+	   	 
+		
+	   
+	  
+		    <div id="settingsRow" class="col-sm-4" style="margin-top:-13px;"><img id="autoParking" src="res/parking.png"/><img id="connect" style="margin-left:10px;" src="res/connect.png"/><img style="margin-left:10px;" id="setting" src="res/settings.png"/></div>
+		   
+ 	  	    <div class="col-sm-2">&nbsp;</div>
+		
+	   </div>
+	
+	 <div id="buttonsRow" class="row" style="margin-top:3%">
+		 <div class="col-xs-2"><img id="leftIndicator" src="res/indicator_left.png"/></div>
+		<div class="col-xs-2"><img style="margin-right:10px;" id="light" src="res/light.png"/></div>
+		<div class="col-xs-2"><img style="margin-right:10px;" id="horn" src="res/horn.png"/></div>
+		<div class="col-xs-2"><img style="margin-right:10px;" id="rightIndicator" src="res/indicator_right.png"/></div>
+		<div class="col-xs-4">&nbsp;</div>
+	 </div>
+	  	<div class="row text-center" style="margin-top:7%;"><button id="switch" style="background-color:#ccc;border:2px solid #ccc;border-radius:3px;">Switch to keyboard</button></div>
+	 	<div id="canvas" class="row text-center" >
+		  
+	 	   <canvas id="joystick" ></canvas>
+		   
+ 		</div>
+		
+		<div id="keys" style="display:none;">
+	 	<div class="row text-center" style="margin-top:3%;">
+			<button id="upbtn" type="button" class="btn btn-default btn-lg" aria-label="Left Align">
+			  <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+			</button>
+	 		
+	 	</div>
+	 	<div class="row text-center" style="margin-top:5px">
+			<button id="leftbtn" type="button" class="btn btn-default btn-lg" aria-label="Left Align">
+			  <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+			</button>
+			<button id="downbtn" type="button" class="btn btn-default btn-lg" aria-label="Left Align">
+			  <span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span>
+			</button>
+			<button id="rightbtn" type="button" class="btn btn-default btn-lg" aria-label="Left Align">
+			  <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+			</button>
+	 		
+	 	</div>
+		</div>
+	</div>
+
+</body>
+
+       <script>
+		 var wid=$(window).width();
+		 var SPEED=0;
+		 var ForwBack=0;
+		 var LeftRight=0;
+		 var TURN=0;
+		 var JoystickEn=true;
+		 var canvasWH=380;
+		 
+		 //if(wid)
+		 $("#joystick").prop({width:canvasWH,height:canvasWH});
+         var canvas = document.getElementById('joystick');
+         var context = canvas.getContext('2d');
+		 var baseX=canvas.width / 2;
+		 var baseY = canvas.width / 2;
+		 var currX=baseX, currY=baseY;
+         var controlActive= false;
+		 var outerRadius=75;
+		 var innerRadius=25;
+		 drawControl(baseX, baseY, innerRadius);
+
+		 function drawControl(centerX,centerY,radius)
+		 {
+			  context.clearRect(0, 0, canvas.width, canvas.height);
+	         context.beginPath();
+			 var coord=limit(centerX,centerY);
+			 currX=coord.x;
+			 currY=coord.y;
+	         context.arc(coord.x, coord.y, radius, 0, 2 * Math.PI, false);
+	         context.fillStyle = '#888888';
+	         context.fill();
+	         context.lineWidth = 1;
+			 context.strokeStyle="#888888";
+			// context.
+	         context.stroke();
+			 context.beginPath();
+			 context.strokeStyle="#000000";
+			 context.rect(baseX/2,baseY/2,baseX,baseY);
+	         context.stroke();
+			 
+			 var speed = (baseY- coord.y)*100 / (baseY-(baseY/2)-innerRadius);
+			 if(speed>0)
+			 $("#speed").text(Math.round(speed)+ " forward");
+			 else if(speed<0)
+			 {
+			 	$("#speed").text(Math.abs(Math.round(speed))+ " backward");
+			 }
+			 else
+				 $("#speed").text(Math.round(speed));
+			 
+			 var turn = (baseX- coord.x)*100 / (baseX-(baseX/2)-innerRadius);
+			 if(turn>0)
+			 $("#direction").text(Math.round(turn)+ " left");
+			 else if(turn<0)
+			 {
+			 	$("#direction").text(Math.abs(Math.round(turn))+ " right");
+			 }
+			 else
+				 $("#direction").text(Math.round(turn));
+		 }
+		 
+		 
+		 function limit(cx, cy) {
+			
+			
+					 var tx=cx,ty=cy;
+					 if(cx-innerRadius<baseX/2)
+						 tx=baseX/2+innerRadius;
+					 else if(cx+innerRadius>(baseX/2)+baseX)
+						 tx=(baseX/2)+baseX-innerRadius;
+					 if(cy-innerRadius<baseY/2)
+						 ty=baseY/2+innerRadius;
+					 else if(cy+innerRadius>(baseY/2)+baseY)
+						 ty=(baseY/2)+baseY-innerRadius;
+					 
+					 return {x:tx,y:ty};
+				 
+		     } 
+		 
+		 function getMouse(e) {
+		   var element = canvas, offsetX = 0, offsetY = 0, mx, my;
+  
+		   // Compute the total offset
+		   if (element.offsetParent !== undefined) {
+		     do {
+		       offsetX += element.offsetLeft;
+		       offsetY += element.offsetTop;
+		     } while ((element = element.offsetParent));
+		   }
+
+		   // Add padding and border style widths to offset
+		   // Also add the <html> offsets in case there's a position:fixed bar
+		   //offsetX += this.stylePaddingLeft + this.styleBorderLeft + this.htmlLeft;
+		   //offsetY += this.stylePaddingTop + this.styleBorderTop + this.htmlTop;
+
+		   mx = e.pageX - offsetX;
+		   my = e.pageY - offsetY;
+  		   $("#coord").html(mx+","+my);
+		   // We return a simple javascript object (a hash) with x and y defined
+		   return {x: mx, y: my};
+		 }
+		 
+		 canvas.addEventListener('mousemove', function(e) {
+			 if(controlActive)
+			 {
+		     // Something's dragging so we must redraw
+			  var coord= getMouse(e);
+			  // alert(coord.x+"  "+coord.y);
+			  drawControl(coord.x,coord.y,innerRadius);
+		  	 }
+		   }, true);
+			
+		   canvas.addEventListener('mousedown', function(e) {
+			   controlActive = true;
+		         }, true);
+	  	   canvas.addEventListener('mouseup', function(e) {
+	  			   controlActive = false;
+				   
+				   animateCircle();
+	  		         }, true);
+					 
+					 
+					 function animateCircle()
+					 {
+			  		   	 var tx = baseX - currX,
+			             ty = baseY - currY,
+			             dist = Math.sqrt(tx*tx+ty*ty),
+			             rad = Math.atan2(ty,tx),
+			             angle = rad/Math.PI * 180;;
+    
+        
+			           velX = (tx/dist)*5;
+			           velY = (ty/dist)*5;
+        
+			            if(dist > 3)
+						{
+			           	  currX += velX;
+			         	  currY += velY;
+						  setTimeout(function(){
+						  	drawControl(currX,currY,innerRadius);
+							animateCircle();
+						  },5);
+			         	}
+						else
+						drawControl(baseX,baseY,innerRadius);
+						
+					 }
+					 
+			$( "#switch" ).click(function() {
+				$("#canvas").toggle();
+				$("#keys").toggle();
+				JoystickEn = JoystickEn?false:true;
+				SPEED=0;
+				TURN=0;
+				$("#direction").text(TURN+" % ahead");
+				$("#speed").text(SPEED+" %");
+				if($(this).html()=="Switch to keyboard")
+					$(this).html("Switch to joystick");
+				else
+					$(this).html("Switch to keyboard");
+			});
+			
+			
+			$(document).keydown(function(e) {
+				var event;
+				e.preventDefault() ;
+				if(!JoystickEn)
+				{
+				if(e.which==38) //up key
+				{
+					//if(currentKey)
+					$("#upbtn").addClass("active");
+					if(SPEED==0)
+						ForwBack=0;
+					if(ForwBack==0 && SPEED<100) //Direction==0 forward
+					{
+						SPEED+=10;
+						$("#speed").text(SPEED+" % forward");
+					}
+					else
+					if(ForwBack==1 && SPEED>0)
+					{
+						SPEED-=10;
+						if(SPEED==0)
+						$("#speed").text(SPEED+" %");
+						else
+						$("#speed").text(SPEED+" % backward");
+					}
+				}
+				
+				else if(e.which==40) //down key
+				{
+					
+					$("#downbtn").addClass("active");
+					if(SPEED==0)
+						ForwBack=1;
+					if(ForwBack==0 && SPEED>0) //Direction==0 forward
+					{
+						SPEED-=10;
+						if(SPEED==0)
+						$("#speed").text(SPEED+" %");
+						else
+						$("#speed").text(SPEED+" % forward");
+					}
+					else
+					if(ForwBack==1 && SPEED<100)
+					{
+						SPEED+=10;
+						$("#speed").text(SPEED+" % backward");
+					}
+				}
+				
+				else if(e.which==37) //left key
+				{
+					
+					$("#leftbtn").addClass("active");
+					if(TURN==0)
+						LeftRight=0;
+					if(LeftRight==0 && TURN<100) //Direction==0 Left
+					{
+						TURN+=10;
+						$("#direction").text(TURN+" % left");
+					}
+					else
+					if(LeftRight==1 && TURN>0)
+					{
+						TURN-=10;
+						if(TURN==0)
+							$("#direction").text(TURN+" % ahead");
+						else
+						$("#direction").text(TURN+" % right");
+					}
+				}
+				
+				else if(e.which==39) //left key
+				{
+					
+					$("#rightbtn").addClass("active");
+					if(TURN==0)
+						LeftRight=1;
+					if(LeftRight==0 && TURN>0) //Direction==1 Left
+					{
+						TURN-=10;
+						if(TURN==0)
+							$("#direction").text(TURN+" % ahead");
+						else
+						$("#direction").text(TURN+" % left");
+					}
+					else
+					if(LeftRight==1 && TURN<100)
+					{
+						TURN+=10;
+						$("#direction").text(TURN+" % right");
+					}
+				}
+			  }
+			});
+			$(document).keyup(function(e) {
+				e.preventDefault();
+				if(e.which==38) 
+				{
+					$("#upbtn").removeClass("active");
+					
+				}
+				else
+					if(e.which==40) 
+					{
+						$("#downbtn").removeClass("active");
+					}
+					else
+						if(e.which==37) 
+						{
+							$("#leftbtn").removeClass("active");
+						}
+						else
+							if(e.which==39) 
+							{
+								$("#rightbtn").removeClass("active");
+							}
+			});
+			
+		
+			var LInterval,LBlinking=false;
+			var RInterval,RBlinking=false;
+			var lightOn=false;
+			var inter=null;
+			var isConnected=false;
+			
+			$( "#leftIndicator" ).click(function() {
+				var cont=0;
+				if(!LBlinking)
+				{
+				 LInterval =  setInterval(function(){
+	   					   if(cont%2==1)
+	   				  	  $( "#leftIndicator" ).css("background-color","#cccccc");
+	   					   else
+	   						$( "#leftIndicator" ).css("background-color","#d0ff4f");
+					   
+	   					   cont++;
+					   
+	   			 	 },500);
+				}
+				else
+				{
+					clearInterval(LInterval);
+					$( "#leftIndicator"  ).css("background-color","#cccccc");
+				}
+				LBlinking=!LBlinking;
+			});
+			
+			$( "#rightIndicator" ).click(function() {
+				var cont=0;
+				if(!RBlinking)
+				{
+   				 RInterval =  setInterval(function(){
+   	   					   if(cont%2==1)
+   	   				  	  $( "#rightIndicator" ).css("background-color","#cccccc");
+   	   					   else
+   	   						$( "#rightIndicator" ).css("background-color","#d0ff4f");
+					   
+   	   					   cont++;
+					   
+   	   			 	 },500);
+				}
+				else
+				{
+					clearInterval(RInterval);
+					$( "#rightIndicator"  ).css("background-color","#cccccc");
+				}
+				RBlinking=!RBlinking;
+			});
+			
+			$( "#autoParking" ).click(function() {
+				var cont=0;
+				
+				if(inter == null)
+				{
+				    inter=setInterval(function(){
+				   	if(cont%2==1)
+				   	  $( "#autoParking" ).css("background-color","#cccccc");
+				   	else
+				   	  $( "#autoParking" ).css("background-color","#d0ff4f");
+					   
+				   	 cont++;
+					 if(cont==20)
+					 {
+							clearInterval(inter);
+							inter = null;
+					 }
+				   	},500);
+				}
+			});
+			
+			$( "#light" ).click(function() {
+				if(!lightOn)
+				{
+					$( "#light" ).css("background-color","#d0ff4f");
+					
+				}
+				else
+				{
+				    $( "#light" ).css("background-color","#cccccc");
+				}
+				lightOn=!lightOn;
+				
+			});
+			
+			$( "#connect" ).click(function() {
+				if(!isConnected)
+				{
+					$( "#connect" ).css("background-color","#00ffff");
+					
+				}
+				else
+				{
+				    $( "#connect" ).css("background-color","#cccccc");
+				}
+				isConnected=!isConnected;
+				
+			});
+			
+		  function doOnOrientationChange()
+		    {
+		      switch(window.orientation) 
+		      {  
+		        case -90:
+		        case 90:
+					alert(1);
+					$(document.body).show();
+					break; 
+		        default:
+					if($(window).width()<768)
+					{
+						$(document.body).hide();
+		          	    alert('Please switch to landscape mode!');
+					}
+		          break; 
+		      }
+		    }
+			
+			$( document ).ready(function() {
+			    window.addEventListener('orientationchange', doOnOrientationChange);
+
+			    // doOnOrientationChange();
+			});
+		    
+			
+       </script>
+</html>
